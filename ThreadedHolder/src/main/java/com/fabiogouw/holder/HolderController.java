@@ -14,6 +14,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -31,6 +32,9 @@ public class HolderController {
 
     private final long _timeout = 5000;
     private final Map<UUID, DeferredResult<OperationResponse>> _map = new ConcurrentHashMap<>();
+
+    @Value("${businessUrl}")
+    private String _businessUrl;
 
     private static final Logger _log = LoggerFactory.getLogger(HolderController.class);
 
@@ -52,29 +56,6 @@ public class HolderController {
         return result;
     }
 
-    /*
-    @RequestMapping(value="wait2", method = RequestMethod.POST)
-    public @ResponseBody OperationResponse wait2(@RequestBody OperationRequest operation) {
-        UUID waitId = UUID.randomUUID();
-        callDoSomething(waitId.toString());            
-        int i = _loops;
-        OperationResponse waiter = null;
-        do {
-            try {
-                Thread.sleep(_waitTimeout);
-            } catch (InterruptedException e) {
-            }
-            waiter = _map.remove(waitId);
-            if(waiter != null) {
-                _log.info("Limpou: " + waitId);
-            }
-            i--;
-        }
-        while(i > 0 && waiter == null);
-        return waiter;
-    }
-    */
-
     private void callDoSomething(String waitId) {
         try {
             CloseableHttpClient client = HttpClients.createDefault();
@@ -85,7 +66,7 @@ public class HolderController {
             .setSocketTimeout(500)
             .build();            
             try {
-                HttpPost httpPost = new HttpPost("http://localhost:8001/business/doSomething/" + waitId);
+                HttpPost httpPost = new HttpPost("http://" + _businessUrl + "/doSomething/" + waitId);
                 String json = "{}";
                 StringEntity entity = new StringEntity(json);
                 httpPost.setConfig(config);
