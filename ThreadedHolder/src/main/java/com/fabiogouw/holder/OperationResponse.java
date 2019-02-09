@@ -1,12 +1,14 @@
 package com.fabiogouw.holder;
 
 public class OperationResponse {
+    private String _originalValue;
     private String _value;
 
     public String getValue() {
         return _value;
     }
     public void setValue(String value){
+
         _value = value;
     }
 
@@ -14,7 +16,8 @@ public class OperationResponse {
 
     }
 
-    public OperationResponse(String value) {
+    public OperationResponse(String originalValue, String value) {
+        _originalValue = originalValue;
         _value = value;
     }
 }
