@@ -12,6 +12,15 @@ public class RequestHolder {
 
     private final Map<UUID, DeferredResult<OperationResponse>> _map = new ConcurrentHashMap<>();
     private static final Logger _log = LoggerFactory.getLogger(RequestHolder.class);
+    private int _replyToPartition;
+
+    public int getReplyToPartition() {
+        return _replyToPartition;
+    }
+
+    public void setReplyToPartition(int value) {
+        _replyToPartition = value;
+    }
 
     public UUID add(DeferredResult<OperationResponse> hold) {
         UUID waitId = UUID.randomUUID();

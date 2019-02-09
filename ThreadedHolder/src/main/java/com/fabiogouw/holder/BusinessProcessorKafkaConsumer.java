@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.TopicPartition;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.Header;
@@ -26,7 +27,7 @@ public class BusinessProcessorKafkaConsumer {
         _businessKafkaProducer = businessKafkaProducer;
     }
 
-    @KafkaListener(topics = BUSINESS_TOPIC, groupId = "foo", containerFactory = "businessConsumerFactory")
+    @KafkaListener(topics = BUSINESS_TOPIC, containerFactory = "businessConsumerFactory")
     public void listenToParition(
             @Payload OperationRequest payload,
             @Header("hold-id") String holdId,

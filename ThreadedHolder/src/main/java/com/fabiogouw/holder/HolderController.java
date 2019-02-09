@@ -30,8 +30,6 @@ public class HolderController {
 
     private final long _timeout = 5000;
 
-    private int _replyToPartition = 0;
-
     private static final Logger _log = LoggerFactory.getLogger(HolderController.class);
 
     private final RequestHolder _requestHolder;
@@ -56,7 +54,7 @@ public class HolderController {
                 .setHeader(KafkaHeaders.TOPIC, BusinessProcessorKafkaConsumer.BUSINESS_TOPIC)
                 .setHeader(KafkaHeaders.MESSAGE_KEY, operation.getValue())
                 .setHeader("hold-id", holdId.toString())
-                .setHeader("reply-to-partition", _replyToPartition)
+                .setHeader("reply-to-partition", _requestHolder.getReplyToPartition())
                 .build();
         _log.info("sending message='{}' to topic='{}'", operation, BusinessProcessorKafkaConsumer.BUSINESS_TOPIC);
         _businessKafkaProducer.send(message);

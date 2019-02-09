@@ -1,7 +1,7 @@
 package com.fabiogouw.holder;
 
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.annotation.TopicPartition;
+import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -19,7 +19,7 @@ public class RequestReleaseKafkaConsumer {
         _requestHolder = requestHolder;
     }
 
-    @KafkaListener(topics = HOLDER_TOPIC, groupId = "foo", containerFactory = "holderConsumerFactory")
+    @KafkaListener(topics = HOLDER_TOPIC, containerFactory = "holderConsumerFactory")
     public void listenToParition(
             @Payload OperationResponse payload,
             @Header("hold-id") String holdId,

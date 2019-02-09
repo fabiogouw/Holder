@@ -1,9 +1,13 @@
 package com.fabiogouw.holder;
 
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -11,9 +15,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
+import org.springframework.kafka.listener.ConsumerAwareRebalanceListener;
+import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,6 +30,8 @@ public class HolderApplication {
 
 	@Value(value = "${kafka.bootstrapAddress}")
 	private String _bootstrapAddress;
+
+	private static final Logger _log = LoggerFactory.getLogger(HolderApplication.class);
 
 	public static void main(String[] args) {
 		SpringApplication.run(HolderApplication.class, args);
@@ -84,10 +93,25 @@ public class HolderApplication {
 	}
 
 	@Bean
-	public ConcurrentKafkaListenerContainerFactory<String, OperationResponse> holderConsumerFactory() {
+	public ConsumerAwareRebalanceListener rebalanceListener(RequestHolder requestHolder) {
+		return new ConsumerAwareRebalanceListener() {
+			@Override
+			public void onPartitionsAssigned(Consumer<?, ?> consumer, Collection<TopicPartition> partitions) {
+				for(TopicPartition p : partitions) {
+					requestHolder.setReplyToPartition(p.partition());
+					_log.info("Holder listening to partition '{}' from '{}'", p.partition(), p.topic());
+					break;
+				}
+			}
+		};
+	}
+
+	@Bean
+	public ConcurrentKafkaListenerContainerFactory<String, OperationResponse> holderConsumerFactory(ConsumerAwareRebalanceListener rebalanceListener) {
 		Map<String, Object> props = consumerProps();
 		ConcurrentKafkaListenerContainerFactory<String, OperationResponse> factory = new ConcurrentKafkaListenerContainerFactory<>();
 		factory.setConsumerFactory(new DefaultKafkaConsumerFactory<>(props));
+		factory.getContainerProperties().setConsumerRebalanceListener(rebalanceListener);
 		return factory;
 	}
 }
