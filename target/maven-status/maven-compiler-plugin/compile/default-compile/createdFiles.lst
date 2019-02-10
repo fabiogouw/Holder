@@ -1,4 +1,6 @@
 com/fabiogouw/holder/BusinessProcessorKafkaConsumer.class
+com/fabiogouw/holder/HolderKafkaConsumer.class
+com/fabiogouw/holder/BusinessProcessorKafkaConsumer$1.class
 com/fabiogouw/holder/RequestHolder.class
-com/fabiogouw/holder/HolderApplication$1.class
+com/fabiogouw/holder/HolderKafkaConsumerFactory.class
 com/fabiogouw/holder/RequestReleaseKafkaConsumer.class

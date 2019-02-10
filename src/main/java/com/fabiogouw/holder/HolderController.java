@@ -1,22 +1,15 @@
 package com.fabiogouw.holder;
 
+import java.util.Random;
 import java.util.UUID;
 
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,6 +27,12 @@ public class HolderController {
 
     private final RequestHolder _requestHolder;
     private final KafkaTemplate<String, OperationRequest> _businessKafkaProducer;
+
+    @Value(value = "${holder.kafka.start-partition}")
+    private int _startPartition;
+
+    @Value(value = "${holder.kafka.end-partition}")
+    private int _endPartition;
 
     public HolderController(RequestHolder requestHolder, KafkaTemplate<String, OperationRequest> businessKafkaProducer) {
         _requestHolder = requestHolder;
@@ -54,9 +53,14 @@ public class HolderController {
                 .setHeader(KafkaHeaders.TOPIC, BusinessProcessorKafkaConsumer.BUSINESS_TOPIC)
                 .setHeader(KafkaHeaders.MESSAGE_KEY, operation.getValue())
                 .setHeader("hold-id", holdId.toString())
-                .setHeader("reply-to-partition", _requestHolder.getReplyToPartition())
+                .setHeader("reply-to-partition", getRandomPartitionToReply())
                 .build();
         _log.info("sending message='{}' to topic='{}'", operation, BusinessProcessorKafkaConsumer.BUSINESS_TOPIC);
         _businessKafkaProducer.send(message);
+    }
+
+    private int getRandomPartitionToReply() {
+        Random random = new Random();
+        return random.nextInt(_endPartition) + _startPartition;
     }
 }

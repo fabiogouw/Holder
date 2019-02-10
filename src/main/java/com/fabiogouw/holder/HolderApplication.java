@@ -1,9 +1,7 @@
 package com.fabiogouw.holder;
 
-import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
@@ -15,12 +13,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
-import org.springframework.kafka.listener.ConsumerAwareRebalanceListener;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,6 +26,12 @@ public class HolderApplication {
 
 	@Value(value = "${kafka.bootstrapAddress}")
 	private String _bootstrapAddress;
+
+	@Value(value = "${holder.kafka.start-partition}")
+	private int _startPartition;
+
+	@Value(value = "${holder.kafka.end-partition}")
+	private int _endPartition;
 
 	private static final Logger _log = LoggerFactory.getLogger(HolderApplication.class);
 
@@ -74,12 +76,13 @@ public class HolderApplication {
 	private Map<String, Object> consumerProps() {
 		Map<String, Object> props = new HashMap<>();
 		props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, _bootstrapAddress);
-		props.put(ConsumerConfig.GROUP_ID_CONFIG, "foo");
+		props.put(ConsumerConfig.GROUP_ID_CONFIG, "example");
 		props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-		props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 100);
+		//props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 100);
+		props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 1);
 		props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 		props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
-		props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+		//props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
 		props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
 		return props;
 	}
@@ -89,29 +92,16 @@ public class HolderApplication {
 		Map<String, Object> props = consumerProps();
 		ConcurrentKafkaListenerContainerFactory<String, OperationRequest> factory = new ConcurrentKafkaListenerContainerFactory<>();
 		factory.setConsumerFactory(new DefaultKafkaConsumerFactory<>(props));
+		factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
 		return factory;
 	}
 
 	@Bean
-	public ConsumerAwareRebalanceListener rebalanceListener(RequestHolder requestHolder) {
-		return new ConsumerAwareRebalanceListener() {
-			@Override
-			public void onPartitionsAssigned(Consumer<?, ?> consumer, Collection<TopicPartition> partitions) {
-				for(TopicPartition p : partitions) {
-					requestHolder.setReplyToPartition(p.partition());
-					_log.info("Holder listening to partition '{}' from '{}'", p.partition(), p.topic());
-					break;
-				}
-			}
-		};
-	}
-
-	@Bean
-	public ConcurrentKafkaListenerContainerFactory<String, OperationResponse> holderConsumerFactory(ConsumerAwareRebalanceListener rebalanceListener) {
+	public ConcurrentKafkaListenerContainerFactory<String, OperationResponse> holderConsumerFactory() {
 		Map<String, Object> props = consumerProps();
 		ConcurrentKafkaListenerContainerFactory<String, OperationResponse> factory = new ConcurrentKafkaListenerContainerFactory<>();
-		factory.setConsumerFactory(new DefaultKafkaConsumerFactory<>(props));
-		factory.getContainerProperties().setConsumerRebalanceListener(rebalanceListener);
+		factory.setConsumerFactory(new HolderKafkaConsumerFactory<>(props, _startPartition, _endPartition));
+		factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
 		return factory;
 	}
 }
